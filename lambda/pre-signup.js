@@ -17,7 +17,7 @@ exports.handler = async (event) => {
     
     if (!isValidDomain) {
         console.error(`Signup blocked for email: ${email} - Domain not allowed`);
-        throw new Error(`Signup is restricted to ${ALLOWED_DOMAINS.join(', ')} email addresses only.`);
+        throw new Error('Email address is not authorized for registration.');
     }
     
     // Email verification is mandatory - do NOT auto-confirm
