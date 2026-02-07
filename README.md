@@ -40,7 +40,7 @@ A production-grade serverless task management application built on AWS with role
 - Email-only login (no username required)
 - Restricted signup to approved domains:
   - `@amalitech.com` → Admin role
-  - `@gmail.com`, `@amalitechtraining.org` → Member role
+  - `@amalitechtraining.org` → Member role
 - Role-based access control enforced at API Gateway and Lambda levels
 
 ### Task Management
@@ -170,7 +170,7 @@ Create new task with optional multiple member assignment:
   "description": "Task Description",
   "priority": "urgent",
   "dueDate": "2026-12-31",
-  "assignedTo": ["member1@gmail.com", "member2@amalitechtraining.org"],
+  "assignedTo": ["member1@amalitechtraining.org", "member2@amalitechtraining.org"],
   "tags": ["backend", "api"]
 }
 ```
@@ -204,7 +204,7 @@ Get list of active members for task assignment
 - Access member list via `/users` endpoint
 - Cannot be assigned to tasks (admins manage, members execute)
 
-### Member (`@gmail.com` and `@amalitechtraining.org` emails)
+### Member (`@amalitechtraining.org` emails)
 - View only tasks where they are assigned
 - Update task status
 - Add comments to tasks
