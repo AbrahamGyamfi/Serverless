@@ -1,0 +1,27 @@
+{
+  "name": "task-management-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda functions for Task Management System with role-based access control",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "task-management",
+    "cognito",
+    "dynamodb",
+    "ses"
+  ],
+  "author": "Amalitech",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1400.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.x"
+  }
+}

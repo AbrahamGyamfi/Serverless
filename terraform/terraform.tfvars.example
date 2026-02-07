@@ -1,0 +1,19 @@
+# AWS Region
+aws_region = "eu-west-1"
+
+# Environment
+environment = "production"
+
+# Project Name (used for resource naming)
+project_name = "task-management"
+
+# SES Configuration
+# IMPORTANT: This email must be verified in AWS SES
+# Go to AWS SES Console -> Verified identities -> Create identity
+ses_source_email = "noreply@yourdomain.com"
+
+# GitHub Configuration (for Amplify)
+# Leave empty if deploying frontend manually or using alternative method
+github_repository = ""  # Example: "https://github.com/yourusername/task-management"
+github_token      = ""   # Personal Access Token with repo access
+github_branch     = "main"
