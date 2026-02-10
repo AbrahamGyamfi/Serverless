@@ -90,6 +90,32 @@ resource "aws_api_gateway_resource" "task_id" {
   path_part   = "{taskId}"
 }
 
+# PUT /tasks/{taskId}
+resource "aws_api_gateway_method" "put_task_id" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.task_id.id
+  http_method   = "PUT"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+
+  request_parameters = {
+    "method.request.path.taskId" = true
+  }
+}
+
+resource "aws_api_gateway_integration" "put_task_id" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.task_id.id
+  http_method             = aws_api_gateway_method.put_task_id.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.update_task_lambda_invoke_arn
+
+  request_parameters = {
+    "integration.request.path.taskId" = "method.request.path.taskId"
+  }
+}
+
 # DELETE /tasks/{taskId}
 resource "aws_api_gateway_method" "delete_tasks" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
@@ -160,7 +186,7 @@ resource "aws_api_gateway_integration_response" "options_task_id" {
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Methods" = "'DELETE,PUT,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
 }
@@ -337,11 +363,13 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_method.get_tasks.id,
       aws_api_gateway_method.post_tasks.id,
       aws_api_gateway_method.put_tasks.id,
+      aws_api_gateway_method.put_task_id.id,
       aws_api_gateway_method.delete_tasks.id,
       aws_api_gateway_method.get_users.id,
       aws_api_gateway_integration.get_tasks.id,
       aws_api_gateway_integration.post_tasks.id,
       aws_api_gateway_integration.put_tasks.id,
+      aws_api_gateway_integration.put_task_id.id,
       aws_api_gateway_integration.delete_tasks.id,
       aws_api_gateway_integration.get_users.id,
     ]))
@@ -355,6 +383,7 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.get_tasks,
     aws_api_gateway_integration.post_tasks,
     aws_api_gateway_integration.put_tasks,
+    aws_api_gateway_integration.put_task_id,
     aws_api_gateway_integration.delete_tasks,
     aws_api_gateway_integration.get_users,
     aws_api_gateway_integration.options_tasks,

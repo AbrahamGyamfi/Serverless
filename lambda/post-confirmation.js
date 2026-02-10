@@ -12,12 +12,13 @@ const cognito = new AWS.CognitoIdentityServiceProvider();
 const USERS_TABLE = process.env.USERS_TABLE;
 
 /**
- * Determines user role based on email domain
+ * Determines user role based on email
+ * Only abraham.gyamfi@amalitech.com is admin, all others are members
  * @param {string} email - User email address
  * @returns {string} User role ('admin' or 'member')
  */
 function determineUserRole(email) {
-    return email.toLowerCase().includes('@amalitech.com') ? 'admin' : 'member';
+    return email.toLowerCase() === 'abraham.gyamfi@amalitech.com' ? 'admin' : 'member';
 }
 
 /**

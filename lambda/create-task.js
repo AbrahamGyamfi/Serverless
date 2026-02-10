@@ -150,6 +150,8 @@ async function createTask(taskData, userEmail) {
         }).promise();
         
         // Send notification emails to all assigned members
+        console.log(`Sending task creation notifications to ${assignedMembers.length} members:`, assignedMembers);
+        
         const isUrgent = task.priority === 'urgent';
         const emailSubject = isUrgent 
             ? '🚨 URGENT: New Task Assigned to You' 
@@ -168,6 +170,7 @@ async function createTask(taskData, userEmail) {
         );
         
         await Promise.allSettled(notifications);
+        console.log(`Task creation notifications sent successfully`);
         
         return response(201, { 
             message: 'Task created successfully', 

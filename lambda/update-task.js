@@ -21,7 +21,7 @@ exports.handler = async (event) => {
     console.log('Update Task Event:', JSON.stringify(event, null, 2));
     
     try {
-        const { body, requestContext } = event;
+        const { body, requestContext, pathParameters } = event;
         
         // Validate authentication
         const authResult = validateAuth(requestContext);
@@ -39,6 +39,13 @@ exports.handler = async (event) => {
         }
         
         const updateData = JSON.parse(body);
+        
+        // Support taskId from either path parameter or body
+        const taskId = pathParameters?.taskId || updateData.taskId;
+        if (taskId) {
+            updateData.taskId = taskId;
+        }
+        
         return await updateTask(updateData, userEmail, userRole);
     } catch (error) {
         console.error('Error:', error);
@@ -53,7 +60,10 @@ async function updateTask(updateData, userEmail, userRole) {
     try {
         const { taskId, status, ...otherUpdates } = updateData;
         
+        console.log('updateTask called with:', { taskId, status, otherUpdates, userEmail, userRole });
+        
         if (!taskId) {
+            console.log('ERROR: Missing taskId');
             return response(400, { error: 'Missing required field: taskId' });
         }
         
@@ -63,17 +73,24 @@ async function updateTask(updateData, userEmail, userRole) {
             Key: { taskId }
         }).promise();
         
+        console.log('Current task fetch result:', { found: !!currentTask.Item });
+        
         if (!currentTask.Item) {
+            console.log('ERROR: Task not found');
             return response(404, { error: 'Task not found' });
         }
         
         const task = currentTask.Item;
+        console.log('Found task:', { taskId: task.taskId, title: task.title });
         
         // Check permissions
         const isAssignedMember = task.assignedMembers && 
                                 task.assignedMembers.includes(userEmail);
         
+        console.log('Permission check:', { userRole, isAssignedMember });
+        
         if (userRole !== 'admin' && !isAssignedMember) {
+            console.log('ERROR: Permission denied');
             return response(403, { 
                 error: 'Forbidden - You can only update tasks assigned to you' 
             });
@@ -194,24 +211,53 @@ async function updateTask(updateData, userEmail, userRole) {
         }
         
         if (Object.keys(updates).length === 0) {
+            console.log('ERROR: No updates provided');
             return response(400, { error: 'No updates provided' });
         }
         
         updates.updatedAt = new Date().toISOString();
         updates.updatedBy = userEmail;
         
+        console.log('Final updates to apply:', updates);
+        
         // Build DynamoDB update expression
         const updateParams = buildUpdateExpression(updates);
+        console.log('Update params:', JSON.stringify(updateParams, null, 2));
         
         // Update the task
-        await dynamodb.update({
+        console.log('Attempting DynamoDB update...');
+        const updateResult = await dynamodb.update({
             TableName: TASKS_TABLE,
             Key: { taskId },
-            ...updateParams
+            ...updateParams,
+            ReturnValues: 'ALL_NEW'
         }).promise();
+        console.log('DynamoDB update successful, result:', JSON.stringify(updateResult.Attributes, null, 2));
         
         // Send notifications based on what changed
         const notifications = [];
+        
+        // Track if we should send general update notification
+        let hasGeneralUpdate = false;
+        const changedFields = [];
+        
+        // Check what fields changed
+        if (updates.title && updates.title !== task.title) {
+            changedFields.push('title');
+            hasGeneralUpdate = true;
+        }
+        if (updates.description && updates.description !== task.description) {
+            changedFields.push('description');
+            hasGeneralUpdate = true;
+        }
+        if (updates.dueDate && updates.dueDate !== task.dueDate) {
+            changedFields.push('due date');
+            hasGeneralUpdate = true;
+        }
+        if (updates.priority && updates.priority !== task.priority && updates.priority !== 'urgent') {
+            changedFields.push('priority');
+            hasGeneralUpdate = true;
+        }
         
         // Status change notifications - notify admin and all assigned members
         if (status && status !== task.status) {
@@ -296,7 +342,28 @@ async function updateTask(updateData, userEmail, userRole) {
             });
         }
         
+        // General update notification - notify all assigned members for other changes
+        if (hasGeneralUpdate && !reassignmentOccurred) {
+            const assignedMembers = task.assignedMembers || [];
+            const fieldsChanged = changedFields.join(', ');
+            
+            assignedMembers
+                .filter(email => email !== userEmail)
+                .forEach(email => {
+                    notifications.push(
+                        sendNotificationEmail(
+                            email,
+                            'Task Updated',
+                            `Task "${task.title}" has been updated by ${userEmail}.\n\nFields changed: ${fieldsChanged}\n\nTitle: ${updates.title || task.title}\n\nDescription: ${updates.description || task.description}\n\nPriority: ${(updates.priority || task.priority).toUpperCase()}\n\nDue Date: ${updates.dueDate || task.dueDate || 'Not set'}\n\nStatus: ${updates.status || task.status}`
+                        )
+                    );
+                });
+        }
+        
         await Promise.allSettled(notifications);
+        console.log(`Sent ${notifications.length} email notification(s) for task update`);
+        
+        console.log('Update completed successfully');
         
         return response(200, { 
             message: 'Task updated successfully',

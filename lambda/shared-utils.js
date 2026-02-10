@@ -38,7 +38,7 @@ async function getUserRole(email) {
         
         // Auto-create user entry if not exists
         const userId = require('uuid').v4();
-        const userRole = email.includes('@amalitech.com') ? 'admin' : 'member';
+        const userRole = email.toLowerCase() === 'abraham.gyamfi@amalitech.com' ? 'admin' : 'member';
         
         await dynamodb.put({
             TableName: USERS_TABLE,
@@ -225,9 +225,9 @@ function buildUpdateExpression(updates) {
     );
     
     return {
-        updateExpression: `SET ${updateExpression}`,
-        expressionAttributeNames,
-        expressionAttributeValues
+        UpdateExpression: `SET ${updateExpression}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues
     };
 }
 
